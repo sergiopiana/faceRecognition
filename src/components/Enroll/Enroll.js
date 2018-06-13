@@ -9,10 +9,38 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import withStyles from 'isomorphic-style-loader/lib/withStyles';
-import Webcam from 'react-webcam';
-import s from './Enroll.css';
+import { withStyles } from '@material-ui/core/styles';
 
+import Webcam from 'react-webcam';
+import TextField from '@material-ui/core/TextField';
+import Button from '@material-ui/core/Button';
+import Paper from '@material-ui/core/Paper';
+import Grid from '@material-ui/core/Grid';
+
+const styles = theme => ({
+  root: {
+    flexGrow: 1,
+  },
+    container: {
+    display: 'flex',
+    flexWrap: 'wrap',
+  },
+  textField: {
+    marginLeft: theme.spacing.unit,
+    marginRight: theme.spacing.unit,
+    width: 200,
+  },
+  menu: {
+    width: 200,
+  },
+  button: {
+    margin: theme.spacing.unit,
+  },
+  input: {
+    display: 'none',
+  },
+  
+});
 
 
 class Enroll extends React.Component {
@@ -77,49 +105,45 @@ class Enroll extends React.Component {
     event.preventDefault();
     this.setState({ grupo: event.target.value });  //<-- both use the same reference
   } 
-  render() {
-    const { title } = this.props;
+  render(props) {
+    const { classes } = this.props;
 
     return (
-      <div className={s.root}>
-        <div className={s.container}>
-          <h1>{title}</h1>
-          <div align='center'>
-              <Webcam
-                audio={false}
-                height={350}
-                ref={this.setRef}
-                screenshotFormat="image/jpeg"
-                width={350}
-               />
-          </div>
-          <form>
-            <div className="form-group">
-              <label>Nombre</label>
-              <input  onChange={this.handleChangeNombre.bind(this)}  type="text" className="form-control" name="nombre" aria-describedby="emailHelp" placeholder="Nombre"/>
-              <small id="emailHelp" className="form-text text-muted">Usuario de alta</small>
-            </div>
-            <div className="form-group">
-              <label>Grupo</label>
-              <input onChange={this.handleChangeGrupo.bind(this)} type="text" className="form-control" name='grupo' placeholder="Grupo"/>
-            </div>
-          </form> 
-          <div>
-            <div className="row">
-              <div className="col-sm-2">
-                <button type="button" className="btn btn-secondary" onClick={this.capture}>Enrolar</button>
-              </div>
-            </div>
-            <div class="alert alert-primary hidden" role="alert" align='center'>
-                  {this.state.mensaje}
-            </div>
-          </div>         
+      <div className={classes.root}>
 
-          
-        </div>
-      </div>
+      <Grid container spacing={24}>
+        <Grid item xs={4}>
+          <Webcam  audio={false} height={350} ref={this.setRef} screenshotFormat="image/jpeg" width={350} />
+        </Grid>
+        <Grid item xs={4} sm={4}>
+
+            <TextField
+              name="nombre"
+              label="With placeholder"
+              placeholder="Nombre"
+              onChange={this.handleChangeNombre.bind(this)}
+              className={classes.textField}
+              margin="normal"
+             />
+
+        </Grid>
+        <Grid item xs={4} sm={4}>
+          <TextField  name="grupo" label="With placeholder" placeholder="Grupo" onChange={this.handleChangeGrupo.bind(this)} className={classes.textField}  margin="normal" />
+        </Grid>
+        <Grid item xs={4} sm={4}>
+            <Button variant="contained" color="primary" onClick={this.capture} className={classes.button}>
+             Enrolar
+            </Button>
+        </Grid>       
+      </Grid>
+    </div>       
+
     );
   }
 }
 
-export default withStyles(s)(Enroll);
+Enroll.propTypes = {
+  classes: PropTypes.object.isRequired,
+};
+
+export default withStyles(styles)(Enroll);
