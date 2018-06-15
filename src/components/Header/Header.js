@@ -30,15 +30,13 @@ class Header extends React.Component {
             </div>
             <div className='col-sm' align='right'>            
               <div>
-                <span className={s.spacer}>·</span>
-                <Link className={s.link} to="/enroll">
-                <button type="button" class="btn btn-link">Enrolar</button>
+                <Link className={s.link}  style={{'marginRight':'10px'}} to="/enroll">
+                <button type="button" className="btn btn-light">Enrolar</button>
                 </Link>
-                <span className={s.spacer}>·</span>
                 <Link className={s.link} to="/">
-                <button type="button" class="btn btn-link">Validar</button>
+                <button type="button" className="btn btn-light">Validar</button>
                 </Link>
-                <span className={s.spacer}>·</span>
+
                 </div>
             </div>
           </div>

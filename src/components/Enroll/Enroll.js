@@ -9,49 +9,21 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-
+import withStyles from 'isomorphic-style-loader/lib/withStyles';
+import _ from 'lodash';
 import Webcam from 'react-webcam';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
-import Paper from '@material-ui/core/Paper';
-import Grid from '@material-ui/core/Grid';
-
-const styles = theme => ({
-  root: {
-    flexGrow: 1,
-  },
-    container: {
-    display: 'flex',
-    flexWrap: 'wrap',
-  },
-  textField: {
-    marginLeft: theme.spacing.unit,
-    marginRight: theme.spacing.unit,
-    width: 200,
-  },
-  menu: {
-    width: 200,
-  },
-  button: {
-    margin: theme.spacing.unit,
-  },
-  input: {
-    display: 'none',
-  },
-  
-});
-
+import s from './Enroll.css';
 
 class Enroll extends React.Component {
   constructor(props) {
     super(props);
     this.state = {nombre:''}
-    this.state = {grupo:''}
+    this.state = {grupo:'afiliados'}
     this.state = {imagen:''}
     this.state = {mensaje:''}
+    this.state = {alerta:'none'}
     this.capture = this.capture.bind(this);
-    this.grabar = this.grabar.bind(this);
+    this.record = this.record.bind(this);
   }
 
   setRef = (webcam) => {
@@ -60,26 +32,55 @@ class Enroll extends React.Component {
   capture(){
     let imagen = this.webcam.getScreenshot();
     //this.setState(imagen:imagen);
-    console.log(imagen)
-    this.grabar(imagen);
+    //console.log(imagen)
+    this.recognize(imagen);
   };  
-  // capture = () => {
-  //   const imagen = this.webcam.getScreenshot();
-  //   this.setState(imagen:imagen);
-  //   console.log(imagen)
-  //   grabar();
-  // };  
-  static propTypes = {
-    title: PropTypes.string.isRequired,
-    html: PropTypes.string.isRequired,
-  };
+  
+  recognize(imageSrc){
+    //console.log(this.state.grupo)
 
-  grabar(imageSrc){
+    let data = {
+      "image": imageSrc,
+      "gallery_name":"afiliados"
+    }
+    fetch('https://api.kairos.com/recognize',{
+      method: 'post',
+      body:JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'app_id': '563d0676',
+        'app_key': '364c193aab78446a85e0707a678aabd3'
+      }
+    })
+    .then(response => response.json())
+    .then((json) => {
+      if(_.find(json.Errors)){
+        console.log(json.Errors[0].Message)
+      }else{
+        if(!_.isUndefined(_.find(json.images[0], ['message', 'no match found']))){
+          console.log(_.find(json.images[0], 'status'))
+          this.record(imageSrc)
+        }else if(!_.isUndefined(_.find(json.images[0], ['status', 'success']))){
+          this.setState({mensaje:"Persona ya enrolada"})      
+          console.log(_.find(json.images[0], 'status'))
+          this.setState({alerta:'block'})
+
+        } 
+      }
+      //console.log("resultado:"+json.images[0].candidates[0].subject_id)
+      
+     // this.setState({nombre:json.images[0].candidates[0].subject_id})
+    })
+  }
+
+  record(imageSrc){
     let data = {
       "image": imageSrc,
       "subject_id":this.state.nombre,
-      "gallery_name":this.state.grupo
+      "gallery_name":"afiliados"
     }
+    
     fetch('https://api.kairos.com/enroll',{
       method: 'post',
       body:JSON.stringify(data),
@@ -105,45 +106,50 @@ class Enroll extends React.Component {
     event.preventDefault();
     this.setState({ grupo: event.target.value });  //<-- both use the same reference
   } 
-  render(props) {
-    const { classes } = this.props;
-
+  render(){
     return (
-      <div className={classes.root}>
+    <div className={s.root}>
+        <div className={s.container}>
+          <div className="card" style={{'margin':'20px'}}>
+            <div className="card-body">
+              <div className='row'>
+                <div className='col-md'>
+                  <Webcam  audio={false} height={300} width={400}  ref={this.setRef} screenshotFormat="image/jpeg" />
+                </div>
+                <div className='col-md'>
+                  <form>
+                    <div className="form-group">
+                      <label>DNI</label>
+                      <input type="number" name="nombre" className="form-control" label="With placeholder" placeholder="DNI" onChange={this.handleChangeNombre.bind(this)} margin="normal"  />
+                      <small id="emailHelp" className="form-text text-muted">Dni de la persona a enrolar.</small>
+                    </div>
+                    <div className="form-group">
+                      <label>Grupo</label>
+                      <input name="grupo" value='afiliados' className="form-control" label="With placeholder" placeholder="Grupo" onChange={this.handleChangeGrupo.bind(this)}  margin="normal" />
+                    </div>
+                    <div className="form-group">
+                    <div className="alert alert-warning" role="alert" style={{'display':this.state.alerta}}>
+                      {this.state.mensaje}
+                    </div>
+                    </div>
 
-      <Grid container spacing={24}>
-        <Grid item xs={4}>
-          <Webcam  audio={false} height={350} ref={this.setRef} screenshotFormat="image/jpeg" width={350} />
-        </Grid>
-        <Grid item xs={4} sm={4}>
 
-            <TextField
-              name="nombre"
-              label="With placeholder"
-              placeholder="Nombre"
-              onChange={this.handleChangeNombre.bind(this)}
-              className={classes.textField}
-              margin="normal"
-             />
+                  </form>  
+                </div>
+              </div>
 
-        </Grid>
-        <Grid item xs={4} sm={4}>
-          <TextField  name="grupo" label="With placeholder" placeholder="Grupo" onChange={this.handleChangeGrupo.bind(this)} className={classes.textField}  margin="normal" />
-        </Grid>
-        <Grid item xs={4} sm={4}>
-            <Button variant="contained" color="primary" onClick={this.capture} className={classes.button}>
-             Enrolar
-            </Button>
-        </Grid>       
-      </Grid>
-    </div>       
-
+            </div>
+            <div className="card-footer text-muted" align='center'>
+              <div>
+                  <button type="button" className="btn btn-primary" onClick={this.capture} >Enrolar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
     );
   }
 }
 
-Enroll.propTypes = {
-  classes: PropTypes.object.isRequired,
-};
 
-export default withStyles(styles)(Enroll);
+export default withStyles(s)(Enroll);

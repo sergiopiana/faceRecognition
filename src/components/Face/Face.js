@@ -9,20 +9,27 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import withStyles from 'isomorphic-style-loader/lib/withStyles';
 import Webcam from 'react-webcam';
+import withStyles from 'isomorphic-style-loader/lib/withStyles';
 import s from './Face.css';
-
+import _ from 'lodash';
 
 
 class Face extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {nombre:''}
-    this.state = {grupo:'colaboradores'}
+    this.state = {id:''}
+    this.state = {grupo:''}
     this.state = {imagen:''}
+    this.state = {datos:''}
+    this.state = {usrNombre:''}
+    this.state = {usrPlan:''}
+    this.state = {usrCredencial:''}
+    this.state = {usrEstado:''}
+    this.state = {mensaje:'none'}
     this.capture = this.capture.bind(this);
-    this.grabar = this.grabar.bind(this);
+    this.recognize = this.recognize.bind(this);
+    this.findUser = this.findUser.bind(this);
   }
 
   setRef = (webcam) => {
@@ -32,25 +39,16 @@ class Face extends React.Component {
     let imagen = this.webcam.getScreenshot();
     //this.setState(imagen:imagen);
     console.log(imagen)
-    this.grabar(imagen);
+    this.recognize(imagen);
   };  
-  // capture = () => {
-  //   const imagen = this.webcam.getScreenshot();
-  //   this.setState(imagen:imagen);
-  //   console.log(imagen)
-  //   grabar();
-  // };  
-  static propTypes = {
-    title: PropTypes.string.isRequired,
-    html: PropTypes.string.isRequired,
-  };
 
-  grabar(imageSrc){
+
+  recognize(imageSrc){
     console.log(this.state.grupo)
 
     let data = {
       "image": imageSrc,
-      "gallery_name":"colaboradores"
+      "gallery_name":"afiliados"
     }
     fetch('https://api.kairos.com/recognize',{
       method: 'post',
@@ -64,60 +62,97 @@ class Face extends React.Component {
     })
     .then(response => response.json())
     .then((json) => {
-      console.log("resultado:"+json.images[0].candidates[0].subject_id)
-      this.setState({nombre:json.images[0].candidates[0].subject_id})
+
+      if(!_.isUndefined(_.find(json.images,'candidates'))){   
+        console.log("resultado:"+json.images[0].candidates[0].subject_id)
+        this.setState({id:json.images[0].candidates[0].subject_id})
+        this.findUser(this.state.id)
+      }else{
+        this.setState({id:''})
+        this.setState({usrNombre:''})
+        this.setState({usrCredencial:''})
+        this.setState({usrPlan:''})
+        this.setState({usrEstado:''}) 
+        this.setState({mensaje:'block'})
+      }
     })
   }
-
-  handleChangeNombre(event) { 
-    event.preventDefault();
-    this.setState({ nombre: event.target.value });  //<-- both use the same reference
-  } 
-  handleChangeGrupo(event) { 
-    event.preventDefault();
-    this.setState({ grupo: event.target.value });  //<-- both use the same reference
-  } 
+  findUser(dni){
+    fetch(`https://sgi.swissmedical.com.ar/ws.afiliados/app/main/afiliados/findByDocument/key/ ${dni} /DU`,{
+      method: 'get',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then((json) => {
+      this.setState({datos:json})
+      let data = _.find(this.state.datos, ['estadoDesc', 'Habilitado'])
+      this.setState({usrNombre:data.nombreCompleto})
+      this.setState({usrCredencial:data.contra+' '+data.inte})
+      this.setState({usrPlan:data.plan.codigoPlan})
+      this.setState({usrEstado:data.estadoDesc})
+    })    
+  }
+ 
   render() {
-    const { title } = this.props;
+    
 
     return (
-      <div className={s.root}>
-        <div className={s.container}>
-          <h1>Validacion</h1>
-
-          <div className="card">
-            <div className="card-img-top" align='center'>
-              <Webcam
-                audio={false}
-                height={400}
-                ref={this.setRef}
-                screenshotFormat="image/jpeg"
-                width={500}
-               />
-          </div>
-            <div className="card-body">
-              <button type="button" className="btn btn-primary" onClick={this.capture}>Validar</button>
-              <h1>{this.state.nombre}<span class="badge badge-secondary">{this.state.grupo}</span></h1>
-            </div>
-          </div>
-
-
-          
-          
-          <div>
-            <div className="row">
-              <div className="col-sm-2">
-                
+    <div className={s.root}>
+      <div className={s.container}>
+        <div className="card" style={{'margin':'20px'}}>
+          <div className="card-body">
+            <div className='row'>
+              <div className='col-md'>
+                <Webcam  audio={false} height={200} ref={this.setRef}  screenshotFormat="image/jpeg" width={300} />
               </div>
-            </div>
-            
-          </div>         
+              <div className='col-md'>
+                <form>
+                  <div className="form-group">
+                    <label >Nombre</label>
+                    <input type="text" className="form-control" value={this.state.usrNombre} id="exampleFormControlInput1" />
+                  </div>
+                  <div className="form-group">
+                    <label >DNI</label>
+                    <input type="text" className="form-control" value={this.state.id}  id="exampleFormControlInput1" />
+                  </div>                    
+                  <div className="form-group">
+                    <label >Credencial</label>
+                    <input type="text" className="form-control" value={this.state.usrCredencial} id="exampleFormControlInput1" />
+                  </div>  
+                  <div className="form-group">
+                    <label >Plan</label>
+                    <input type="text" className="form-control" value={this.state.usrPlan} id="exampleFormControlInput1" />
+                  </div>                    
+                  <div className="form-group">
+                    <label >Estado</label>
+                    <input type="text" className="form-control" value={this.state.usrEstado}  id="exampleFormControlInput1" />
+                  </div>                                                       
+                  <div  className="alert alert-danger" role="alert" style={{'display':this.state.mensaje}}>
+                     No se encontro el usuario.
+                  </div>  
+                </form>
 
-          
+              </div>        
+            </div>
+          </div>
+
+          <div className="card-footer text-muted" align='center'>
+            <div>
+            <button type="button" className="btn btn-primary" onClick={this.capture}>Validar</button>
+            </div>
+        
+          </div>
+
         </div>
       </div>
+    </div>
+
     );
   }
 }
+
 
 export default withStyles(s)(Face);
